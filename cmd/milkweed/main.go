@@ -8,6 +8,7 @@ import (
 
 	"github.com/jcc333/milkweed/internal/poasts"
 	"github.com/jcc333/milkweed/internal/state"
+	"github.com/joho/godotenv"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -30,6 +31,10 @@ type Config struct {
 }
 
 func configFromEnv() (config *Config, err error) {
+	err = godotenv.Load()
+	if err != nil {
+		return
+	}
 	username, present := os.LookupEnv("MILKWEED_USERNAME")
 	if !present {
 		err = fmt.Errorf("Milkweed needs the MILKWEED_USERNAME to be set to a BlueSky username")
@@ -71,7 +76,7 @@ func main() {
 
 	config, err := configFromEnv()
 	if err != nil {
-		log.Fatal("failed to read configuration for Milkweed: '%v'", err)
+		log.Fatal("failed to read configuration for Milkweed: '", err, "'")
 	}
 
 	ps, err := poasts.New(config.rss)
