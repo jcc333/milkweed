@@ -20,14 +20,14 @@ type Poasts struct {
 
 // A pointer to a blog poast.
 type Poast struct {
-	// The Title description of the Poast
+	// The description of the Poast
 	Title string
 
-	// The short-form Description of the Poast
+	// The short-form description of the Poast
 	Description string
 
-	// The URL of the Poast
-	URL string
+	// The GUID of the Poast
+	GUID string
 
 	// The time of publication
 	Published time.Time
@@ -58,28 +58,10 @@ func (ps *Poasts) All() iter.Seq2[*Poast, error] {
 			p := Poast{
 				Title:       itm.Title,
 				Description: itm.Description,
-				URL:         itm.GUID,
+				GUID:        itm.GUID,
 				Published:   published,
 			}
 			if !yield(&p, nil) {
-				break
-			}
-		}
-	}
-}
-
-// All of the Poasts from after the given publication time.
-func (ps *Poasts) After(published *time.Time) iter.Seq2[*Poast, error] {
-	if published == nil {
-		return ps.All()
-	}
-	return func(yield func(*Poast, error) bool) {
-		for p, err := range ps.All() {
-			if err != nil {
-				yield(nil, err)
-				break
-			}
-			if p.Published.After(*published) && !yield(p, nil) {
 				break
 			}
 		}

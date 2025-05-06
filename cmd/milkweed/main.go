@@ -6,9 +6,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/jcc333/milkweed/poasts"
-	"github.com/jcc333/milkweed/state"
-
+	"github.com/jcc333/milkweed/internal/poasts"
+	"github.com/jcc333/milkweed/internal/state"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -85,13 +84,22 @@ func main() {
 		logger.Println(err)
 		log.Fatal("failed to initialize state for Milkweed")
 	}
-	for p, err := range ps.After(st.Published) {
+	for p, err := range ps.All() {
 		if err != nil {
 			logger.Println(err)
 			logger.Println("error reading poasts")
 		}
+		isPublished, err := st.IsPublished(p.GUID)
+		if err != nil {
+			logger.Println(err)
+			logger.Println("error checking poast publication status for ", p.GUID)
+		}
+		if isPublished {
+			logger.Println("kkipping ", p.GUID, " because it is already published")
+			continue
+		}
 		if err == nil {
-			st.Publish(p.Published)
+			st.Publish(p.GUID, p.Published)
 		}
 		fmt.Println(p)
 	}
