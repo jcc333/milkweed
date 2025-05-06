@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/jcc333/milkweed/internal/poasts"
-	"github.com/jcc333/milkweed/internal/state"
-	"github.com/joho/godotenv"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/jcc333/milkweed/internal/state"
+	"github.com/jcc333/milkweed/internal/poasts"
+	"github.com/robfig/cron"
 )
 
 // The configuration for milkweed consists of:
@@ -31,10 +31,6 @@ type Config struct {
 }
 
 func configFromEnv() (config *Config, err error) {
-	err = godotenv.Load()
-	if err != nil {
-		return
-	}
 	username, present := os.LookupEnv("MILKWEED_USERNAME")
 	if !present {
 		err = fmt.Errorf("Milkweed needs the MILKWEED_USERNAME to be set to a BlueSky username")
@@ -69,22 +65,15 @@ func configFromEnv() (config *Config, err error) {
 	return
 }
 
-func main() {
-	slogger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(slogger)
+// Finds new skeets and publishes them
+func publishNewSkeets(cfg *Config) {
 	logger := log.Default()
-
-	config, err := configFromEnv()
-	if err != nil {
-		log.Fatal("failed to read configuration for Milkweed: '", err, "'")
-	}
-
-	ps, err := poasts.New(config.rss)
+	ps, err := poasts.New(cfg.rss)
 	if err != nil {
 		logger.Println(err)
 		logger.Fatal("failed to get post stream for Milkweed")
 	}
-	st, err := state.New(config.sqlite)
+	st, err := state.New(cfg.sqlite)
 	if err != nil {
 		logger.Println(err)
 		log.Fatal("failed to initialize state for Milkweed")
@@ -97,15 +86,32 @@ func main() {
 		isPublished, err := st.IsPublished(p.GUID)
 		if err != nil {
 			logger.Println(err)
-			logger.Println("error checking poast publication status for ", p.GUID)
-		}
-		if isPublished {
-			logger.Println("kkipping ", p.GUID, " because it is already published")
+			logger.Println("error checking if poast is published")
 			continue
 		}
-		if err == nil {
+		if !isPublished {
+			logger.Println("Publishing ", p.GUID, " from ", p.Published)
 			st.Publish(p.GUID, p.Published)
 		}
-		fmt.Println(p)
 	}
+	return
+}
+
+func main() {
+	slogger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(slogger)
+	logger := log.Default()
+
+	cfg, err := configFromEnv()
+	if err != nil {
+		logger.Fatal("failed to read configuration for Milkweed: '%v'", err)
+	}
+
+	c := cron.New()
+	err = c.AddFunc(cfg.schedule, func() { publishNewSkeets(cfg) })
+	if err != nil {
+		logger.Fatal("failed to add CRON func on schedule '", cfg.schedule, "'")
+	}
+	c.Start()
+	defer c.Stop()
 }
