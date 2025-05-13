@@ -13,7 +13,6 @@ import (
 	"github.com/jcc333/milkweed/send"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/robfig/cron"
-	// "github.com/robfig/cron"
 )
 
 // Finds new skeets and publishes them
