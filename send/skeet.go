@@ -18,7 +18,7 @@ import (
 // One which sends.
 type Sender interface {
 	// Send skeet.
-	Send(*poasts.Poast, *state.State) error
+	Send(context.Context, *poasts.Poast, *state.State) error
 }
 
 // Send - to bluesky.
@@ -58,7 +58,7 @@ func (c *BlueskySender) Connect(ctx context.Context) error {
 func New(cfg *config.Config) *BlueskySender {
 	return &BlueskySender{
 		cfg:    cfg,
-		client: &xrpc.Client{},
+		client: &xrpc.Client{Host: "https://bsky.social"},
 	}
 
 }

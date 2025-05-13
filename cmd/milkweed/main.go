@@ -10,12 +10,13 @@ import (
 	"github.com/jcc333/milkweed/internal/config"
 	"github.com/jcc333/milkweed/internal/poasts"
 	"github.com/jcc333/milkweed/internal/state"
+	"github.com/jcc333/milkweed/send"
 	_ "github.com/joho/godotenv/autoload"
 	// "github.com/robfig/cron"
 )
 
 // Finds new skeets and publishes them
-func publishNewSkeets(ps *poasts.Poasts, st *state.State) {
+func publishNewSkeets(ctx context.Context, ps *poasts.Poasts, st *state.State, sender send.Sender) {
 	logger := log.Default()
 	for p, err := range ps.All() {
 		if err != nil {
@@ -36,8 +37,7 @@ func publishNewSkeets(ps *poasts.Poasts, st *state.State) {
 		if !isPublished {
 			logger.Println("Publishing ", p.GUID, " from ", p.Published)
 			st.Publish(p.GUID, p.Published)
-			skeet, err := p.String()
-			logger.Println("Sending skeet: ", skeet)
+			err = sender.Send(ctx, p, st)
 			if err != nil {
 				logger.Println(err)
 				logger.Println("error sending skeet")
@@ -80,7 +80,19 @@ func main() {
 		logger.Println(err)
 		log.Fatal("failed to initialize state for Milkweed")
 	}
-	publishNewSkeets(ps, st)
+	snd := send.New(cfg)
+	err = snd.Connect(ctx)
+	if err != nil {
+		logger.Println(err)
+		log.Fatal("failed to connect sender for Milkweed")
+	}
+	defer func() {
+		err := snd.Close()
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
+	publishNewSkeets(ctx, ps, st, snd)
 	return
 	// c := cron.New()
 	// err = c.AddFunc(cfg.schedule, func() { publishNewSkeets(ps, st) })
