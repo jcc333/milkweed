@@ -12,6 +12,7 @@ import (
 	"github.com/jcc333/milkweed/internal/state"
 	"github.com/jcc333/milkweed/send"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/robfig/cron"
 	// "github.com/robfig/cron"
 )
 
@@ -58,6 +59,7 @@ func main() {
 	}
 
 	ctx, stop := context.WithCancel(context.Background())
+	done := ctx.Done()
 	defer stop()
 
 	ps, err := poasts.New(cfg.RSS, logger)
@@ -92,12 +94,13 @@ func main() {
 			logger.Println(err)
 		}
 	}()
-	publishNewSkeets(ctx, ps, st, snd)
-	return
-	// c := cron.New()
-	// err = c.AddFunc(cfg.schedule, func() { publishNewSkeets(ps, st) })
-	// if err != nil {
-	// 	logger.Fatal("failed to add CRON func on schedule '", cfg.Schedule, "'")
-	// }
-	// c.Run()
+
+	c := cron.New()
+	err = c.AddFunc(cfg.Schedule, func() { publishNewSkeets(ctx, ps, st, snd) })
+	if err != nil {
+		logger.Fatal("failed to add CRON func on schedule '", cfg.Schedule, "'")
+	}
+	c.Start()
+	<-done
+	log.Println("Goodbye!")
 }
