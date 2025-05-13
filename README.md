@@ -20,3 +20,5 @@ MILKWEED_RSS_URL=<the URL where the RSS feed lives>
 MILKWEED_SQLITE_PATH=<the path to the SQLITE DB>
 MILKWEED_CRON_SCHEDULE=<a crontab schedule to refresh the RSS feed>
 ```
+## Quick Note
+- Your username/handle can't have the `@` in it
